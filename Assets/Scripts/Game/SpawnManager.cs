@@ -7,6 +7,8 @@ using Random = UnityEngine.Random;
 
 public class SpawnManager : Singleton<SpawnManager>
 {
+    [Required] [SerializeField] private GameObject _playerPrefab;
+    [Required] [SerializeField] private GameObject _asteroidPrefab;
     [Required] [SerializeField] private GameObject _enemyPrefab;
     [Required] [SerializeField] private List<GameObject> _powerupPrefabs;
 
@@ -22,15 +24,26 @@ public class SpawnManager : Singleton<SpawnManager>
     [SerializeField] private float _enemySpawnStartDelay = 1.0f;
     [SerializeField] private float _enemySpawnRepeatDelayMin = 3.0f;
     [SerializeField] private float _enemySpawnRepeatDelayMax = 7.0f;
+    [SerializeField] private float _enemySpawnOverTimeRatio = 0.95f;
+
     [SerializeField] private float _powerupSpawnStartDelay = 7.0f;
     [SerializeField] private float _powerupSpawnRepeatDelayMin = 5.0f;
     [SerializeField] private float _powerupSpawnRepeatDelayMax = 10.0f;
 
     private bool _isGameOver;
 
+    private float _currentEnemySpawnRepeatDelayMin;
+    private float _currentEnemySpawnRepeatDelayMax;
+
+
     private void Start()
     {
         GameManager.Instance.eventGameState.AddListener(HandleGameStateChange);
+        _currentEnemySpawnRepeatDelayMin = _enemySpawnRepeatDelayMin;
+        _currentEnemySpawnRepeatDelayMax = _enemySpawnRepeatDelayMax;
+
+        Instantiate(_playerPrefab);
+        Instantiate(_asteroidPrefab, new Vector3(0, 4, 0), Quaternion.identity);
     }
 
     private Vector3 SpawnPosition()
@@ -43,9 +56,12 @@ public class SpawnManager : Singleton<SpawnManager>
         yield return new WaitForSeconds(_enemySpawnStartDelay);
         while (!_isGameOver)
         {
-            GameObject enemy = Instantiate(_enemyPrefab, SpawnPosition(), Quaternion.identity);
-            enemy.transform.parent = _enemyContainer.transform;
-            yield return new WaitForSeconds(Random.Range(_enemySpawnRepeatDelayMin, _enemySpawnRepeatDelayMax));
+            Instantiate(_enemyPrefab, SpawnPosition(), Quaternion.identity, _enemyContainer.transform);
+            yield return new WaitForSeconds(Random.Range(_currentEnemySpawnRepeatDelayMin,
+                _currentEnemySpawnRepeatDelayMax));
+
+            _currentEnemySpawnRepeatDelayMin *= _enemySpawnOverTimeRatio;
+            _currentEnemySpawnRepeatDelayMax *= _enemySpawnOverTimeRatio;
         }
     }
 
@@ -55,8 +71,8 @@ public class SpawnManager : Singleton<SpawnManager>
         while (!_isGameOver)
         {
             int powerupIndex = Random.Range(0, _powerupPrefabs.Count);
-            GameObject powerup = Instantiate(_powerupPrefabs[powerupIndex], SpawnPosition(), Quaternion.identity);
-            powerup.transform.parent = _powerupContainer.transform;
+            Instantiate(_powerupPrefabs[powerupIndex], SpawnPosition(), Quaternion.identity,
+                _powerupContainer.transform);
             yield return new WaitForSeconds(Random.Range(_powerupSpawnRepeatDelayMin, _powerupSpawnRepeatDelayMax));
         }
     }

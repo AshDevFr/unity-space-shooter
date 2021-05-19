@@ -1,7 +1,7 @@
 ﻿using UnityEngine.Events;
 
 [System.Serializable]
-public class EventGameScore : UnityEvent<int>
+public class EventGameScore : UnityEvent<int, int>
 {
 }
 

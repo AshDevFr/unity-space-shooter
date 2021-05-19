@@ -10,6 +10,7 @@ public class GameManager : Singleton<GameManager>
     {
         PREGAME,
         RUNNING,
+        PAUSED,
         GAMEOVER
     }
 
@@ -25,6 +26,7 @@ public class GameManager : Singleton<GameManager>
     private string _currentLevelName = string.Empty;
     private GameState _currentGameState = GameState.PREGAME;
     private int _score;
+    private int _bestScore;
 
     public GameState CurrentGameState
     {
@@ -32,9 +34,16 @@ public class GameManager : Singleton<GameManager>
         private set { _currentGameState = value; }
     }
 
+    public int BestScore
+    {
+        get { return _bestScore; }
+    }
+
     private void Start()
     {
         DontDestroyOnLoad(gameObject);
+
+        _bestScore = PlayerPrefs.GetInt("BestScore", 0);
 
         _loadOperations = new List<AsyncOperation>();
         _instancedSystemPrefabs = new List<GameObject>();
@@ -50,12 +59,19 @@ public class GameManager : Singleton<GameManager>
         switch (_currentGameState)
         {
             case GameState.PREGAME:
+                Time.timeScale = 1f;
                 break;
 
             case GameState.RUNNING:
+                Time.timeScale = 1f;
+                break;
+
+            case GameState.PAUSED:
+                Time.timeScale = 0f;
                 break;
 
             case GameState.GAMEOVER:
+                Time.timeScale = 1f;
                 break;
 
             default:
@@ -90,6 +106,7 @@ public class GameManager : Singleton<GameManager>
 
     public void StartGame()
     {
+        SetScore(0);
         LoadLevel("Game");
     }
 
@@ -109,19 +126,30 @@ public class GameManager : Singleton<GameManager>
         eventPlayerStats.Invoke(playerStats);
     }
 
+    public void SetScore(int score)
+    {
+        _score = score;
+        if (_score > _bestScore)
+        {
+            _bestScore = _score;
+            PlayerPrefs.SetInt("BestScore", _bestScore);
+        }
+
+        eventGameScore.Invoke(_score, _bestScore);
+    }
+
     public void AddToScore(int increment)
     {
-        _score += increment;
-        eventGameScore.Invoke(_score);
+        SetScore(_score + increment);
     }
 
     public void LoadLevel(string levelName)
     {
-        if(_isLoadingLevel )
+        if (_isLoadingLevel)
             return;
 
         _isLoadingLevel = true;
-        
+
         AsyncOperation ao = SceneManager.LoadSceneAsync(levelName, LoadSceneMode.Additive);
         if (ao == null)
         {
@@ -164,5 +192,23 @@ public class GameManager : Singleton<GameManager>
     private void OnUnloadcompleted(AsyncOperation ao)
     {
         Debug.Log("Unload complete");
+    }
+
+    public void TogglePause()
+    {
+        if (_currentGameState == GameState.RUNNING)
+            UpdateState(GameState.PAUSED);
+        else if (_currentGameState == GameState.PAUSED)
+            UpdateState(GameState.RUNNING);
+    }
+
+    public void Exit()
+    {
+        for (int i = 0; i < _instancedSystemPrefabs.Count; i++)
+        {
+            Destroy(_instancedSystemPrefabs[i]);
+        }
+
+        Application.Quit();
     }
 }

@@ -21,7 +21,7 @@ public class Player : MonoBehaviour
 
     [Required] [SerializeField] private GameObject _laserPrefab;
     [Required] [SerializeField] private GameObject _tripleShotPrefab;
-    [SerializeField] private Vector3 _spawnOffset = new Vector3(0, 1, 0);
+    [SerializeField] private Vector3 _laserSpawnOffset = new Vector3(0, 1, 0);
     [SerializeField] private float _coolDownDelay = 0.15f;
     [SerializeField] private float _powerupDuration = 5f;
     [SerializeField] private float _speedBoostMultiplier = 2f;
@@ -31,6 +31,7 @@ public class Player : MonoBehaviour
     private AudioSource _audioSource;
     
     private bool _canFire = true;
+    private bool _canBeDamaged = true;
     private bool _tripleShotEnabled;
     private bool _speedBoostEnabled;
     private bool _shieldEnabled;
@@ -95,6 +96,11 @@ public class Player : MonoBehaviour
         _canFire = true;
     }
 
+    private void EnableDamage()
+    {
+        _canBeDamaged = true;
+    }
+
     public void EnablePowerup(PowerupType powerup)
     {
         switch (powerup)
@@ -136,7 +142,7 @@ public class Player : MonoBehaviour
     {
         GameObject laserPrefabEnabled = _tripleShotEnabled ? _tripleShotPrefab : _laserPrefab;
 
-        Instantiate(laserPrefabEnabled, transform.position + _spawnOffset, Quaternion.identity);
+        Instantiate(laserPrefabEnabled, transform.position + _laserSpawnOffset, Quaternion.identity);
         _canFire = false;
         Invoke("EnableFire", _coolDownDelay);
         _audioSource.Play();
@@ -144,6 +150,12 @@ public class Player : MonoBehaviour
 
     public void Damage()
     {
+        if(!_canBeDamaged)
+            return;
+
+        _canBeDamaged = false;
+        Invoke("EnableDamage", 0.2f);
+        
         if (_shieldEnabled)
         {
             _shieldEnabled = false;
